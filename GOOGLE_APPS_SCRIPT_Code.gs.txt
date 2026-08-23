@@ -1,0 +1,32 @@
+const SHEET_NAME = 'Ket_qua_hoc_tap';
+
+const BASE_HEADERS = [
+  'Thời gian nhận','Họ và tên','Lớp','Mã học sinh / STT','Loại bài','Tên bài / chế độ','Điểm /10','Số câu đúng','Tổng số câu','Tỉ lệ %','Số câu đã trả lời','Thời gian làm (giây)','NB đúng','NB tổng','TH đúng','TH tổng','VD đúng','VD tổng','Kết quả theo chủ đề','Mã lượt làm','Mã thiết bị','Thời điểm nộp từ trình duyệt','Trang gửi','Trình duyệt'
+];
+const EXTRA_HEADERS = ['Khối','VDC đúng','VDC tổng'];
+const HEADERS = BASE_HEADERS.concat(EXTRA_HEADERS);
+
+function doGet() {
+  return ContentService.createTextOutput('Bộ thu kết quả Tin học 10 & 11 đang hoạt động.').setMimeType(ContentService.MimeType.TEXT);
+}
+function doPost(e) {
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    let p={}; try{p=JSON.parse((e&&e.parameter&&e.parameter.payload)||'{}');}catch(err){p={};}
+    const ss=SpreadsheetApp.getActiveSpreadsheet(); let sh=ss.getSheetByName(SHEET_NAME); if(!sh)sh=ss.insertSheet(SHEET_NAME);
+    ensureHeaders_(sh);
+    sh.appendRow([
+      new Date(),clean(p.studentName),clean(p.className),clean(p.studentCode),clean(p.sessionType),clean(p.quizTitle),numberOrBlank(p.score10),numberOrBlank(p.correct),numberOrBlank(p.total),numberOrBlank(p.percent),numberOrBlank(p.answered),numberOrBlank(p.durationSeconds),numberOrBlank(p.nbCorrect),numberOrBlank(p.nbTotal),numberOrBlank(p.thCorrect),numberOrBlank(p.thTotal),numberOrBlank(p.vdCorrect),numberOrBlank(p.vdTotal),clean(p.topicSummary),clean(p.attemptId),clean(p.deviceId),clean(p.submittedAt),clean(p.pageUrl),clean(p.userAgent),clean(p.grade),numberOrBlank(p.vdcCorrect),numberOrBlank(p.vdcTotal)
+    ]);
+    return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT);
+  } finally { lock.releaseLock(); }
+}
+function ensureHeaders_(sh){
+  if(sh.getLastRow()===0){sh.getRange(1,1,1,HEADERS.length).setValues([HEADERS]);sh.setFrozenRows(1);sh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');return;}
+  const existing=sh.getRange(1,1,1,Math.max(sh.getLastColumn(),BASE_HEADERS.length)).getValues()[0];
+  BASE_HEADERS.forEach((h,i)=>{if(!existing[i])sh.getRange(1,i+1).setValue(h);});
+  EXTRA_HEADERS.forEach((h,i)=>sh.getRange(1,BASE_HEADERS.length+i+1).setValue(h));
+  sh.setFrozenRows(1);sh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');
+}
+function clean(v){if(v===null||v===undefined)return '';return String(v).slice(0,5000);}
+function numberOrBlank(v){if(v===null||v===undefined||v==='')return '';const n=Number(v);return Number.isFinite(n)?n:'';}
