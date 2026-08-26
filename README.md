@@ -1,22 +1,37 @@
-# Website ôn tập Tin học 10 & 11 – v11
+# Ôn tập Tin học 10 & 11 – v12
 
-Phiên bản tích hợp hai khối trong một website tĩnh, phù hợp GitHub Pages.
+Phiên bản v12 phát triển từ v11 theo hướng **học tập cá nhân hoá dựa trên dữ liệu học tập**, phục vụ đồng thời hai mục tiêu:
 
-## Nội dung
-- Tin học 10: 6 chủ đề, 30 bài theo kế hoạch Tin học ứng dụng, 772 câu hỏi tĩnh.
-- Tin học 11: giữ nguyên 7 chủ đề, 31 bài và ngân hàng câu hỏi của phiên bản đã kiểm tra trước đó.
-- Học sinh chọn khối ngay trên website; tiến độ/câu sai tách riêng theo khối.
-- Bắt buộc Họ tên + Lớp trước khi làm bài.
-- Kết quả gửi Google Sheets có thêm trường Khối và Vận dụng cao.
+1. Học sinh tự học, luyện tập và nhận phản hồi tức thời.
+2. Giáo viên có dữ liệu để theo dõi tiến bộ và làm minh chứng cho sáng kiến.
 
-## Tin học 10 không có Bài 3–6 trên website
-Theo kế hoạch giáo dục định hướng Tin học ứng dụng được giáo viên cung cấp, lộ trình sử dụng Bài 1, Bài 2, Bài 7, rồi Bài 8–34. Vì vậy website có 30 bài học Tin 10, không chèn Bài 3–6 vào lộ trình.
+## Điểm mới của v12
 
-## Cách chạy thử
-Mở `index.html` trực tiếp bằng Chrome/Edge. Không cần máy chủ hoặc API key.
+- Giao diện gọn hơn: 5 mục chính, các chức năng phụ gom vào menu **Thêm**.
+- Mỗi bài có trạng thái năng lực:
+  - **Thành thạo:** từ 80% trở lên.
+  - **Đang củng cố:** 60–79%.
+  - **Cần ôn lại:** dưới 60%.
+- Không còn nút “đánh dấu hoàn thành” thủ công; mức thành thạo dựa trên kết quả luyện bài.
+- **Luyện theo gợi ý:** ưu tiên câu sai, mức độ yếu và bài chưa thành thạo.
+- **Đánh giá đầu vào / đánh giá lại:** 15 câu phân bố theo các mức độ có trong từng khối.
+- Trang kết quả có phân tích NB/TH/VD/VDC (theo dữ liệu của từng khối), chỉ ra điểm mạnh và điểm cần cải thiện.
+- **Sổ câu cần củng cố:** một câu sai chỉ rời sổ sau khi trả lời đúng lại 2 lần.
+- Trang **Tiến độ** đổi thành hồ sơ năng lực: bản đồ mức độ, trạng thái từng bài, huy hiệu, so sánh trước–sau.
+- Giữ nguyên cơ chế gửi Google Sheets đang chạy ở v11.
+- Có `teacher-dashboard.html` tùy chọn, chỉ hiển thị dữ liệu tổng hợp, không trả danh sách tên học sinh.
 
-## Kết nối Google Sheets
-`config.js` giữ URL Apps Script đang dùng. Để Sheet nhận cột Khối và VDC, thay mã Apps Script bằng nội dung `GOOGLE_APPS_SCRIPT_Code.gs.txt`, lưu và triển khai lại Web App.
+## Dữ liệu hiện có
 
-## Đưa lên GitHub
-Tải toàn bộ các tệp ở thư mục gốc repository (không tải nguyên thư mục lồng). Bắt buộc tên trang chính là `index.html`.
+- Tin học 10: 30 bài, 772 câu.
+- Tin học 11: 31 bài, 860 câu.
+
+## Tệp chính
+
+- `index.html`: website học sinh.
+- `app.js`: logic học tập cá nhân hoá.
+- `style.css`: giao diện.
+- `storage.js`: lưu trạng thái trên thiết bị.
+- `teacher-dashboard.html`: dashboard tổng hợp cho giáo viên (tùy chọn).
+- `GOOGLE_APPS_SCRIPT_Code.gs.txt`: bản Apps Script v12 để thu thêm trường dữ liệu và cấp dữ liệu tổng hợp cho dashboard.
+- `SANG_KIEN_MINH_CHUNG.md`: gợi ý cấu trúc minh chứng cho sáng kiến.

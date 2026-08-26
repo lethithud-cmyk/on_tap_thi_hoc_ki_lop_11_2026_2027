@@ -3,12 +3,23 @@ const SHEET_NAME = 'Ket_qua_hoc_tap';
 const BASE_HEADERS = [
   'Thời gian nhận','Họ và tên','Lớp','Mã học sinh / STT','Loại bài','Tên bài / chế độ','Điểm /10','Số câu đúng','Tổng số câu','Tỉ lệ %','Số câu đã trả lời','Thời gian làm (giây)','NB đúng','NB tổng','TH đúng','TH tổng','VD đúng','VD tổng','Kết quả theo chủ đề','Mã lượt làm','Mã thiết bị','Thời điểm nộp từ trình duyệt','Trang gửi','Trình duyệt'
 ];
-const EXTRA_HEADERS = ['Khối','VDC đúng','VDC tổng'];
+const EXTRA_HEADERS = ['Khối','VDC đúng','VDC tổng','Trạng thái học tập','Mức cần củng cố','Giai đoạn đánh giá'];
 const HEADERS = BASE_HEADERS.concat(EXTRA_HEADERS);
 
-function doGet() {
-  return ContentService.createTextOutput('Bộ thu kết quả Tin học 10 & 11 đang hoạt động.').setMimeType(ContentService.MimeType.TEXT);
+function doGet(e) {
+  const mode = String((e && e.parameter && e.parameter.mode) || 'health');
+  if (mode !== 'summary') {
+    return ContentService.createTextOutput('Bộ thu kết quả Tin học 10 & 11 đang hoạt động.').setMimeType(ContentService.MimeType.TEXT);
+  }
+  const grade = String((e.parameter.grade || '')).trim();
+  const className = String((e.parameter.className || '')).trim().toLowerCase();
+  const callback = String((e.parameter.callback || '')).replace(/[^a-zA-Z0-9_.$]/g,'');
+  const data = buildSummary_(grade, className);
+  const json = JSON.stringify(data);
+  if (callback) return ContentService.createTextOutput(callback + '(' + json + ');').setMimeType(ContentService.MimeType.JAVASCRIPT);
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 }
+
 function doPost(e) {
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
@@ -16,16 +27,44 @@ function doPost(e) {
     const ss=SpreadsheetApp.getActiveSpreadsheet(); let sh=ss.getSheetByName(SHEET_NAME); if(!sh)sh=ss.insertSheet(SHEET_NAME);
     ensureHeaders_(sh);
     sh.appendRow([
-      new Date(),clean(p.studentName),clean(p.className),clean(p.studentCode),clean(p.sessionType),clean(p.quizTitle),numberOrBlank(p.score10),numberOrBlank(p.correct),numberOrBlank(p.total),numberOrBlank(p.percent),numberOrBlank(p.answered),numberOrBlank(p.durationSeconds),numberOrBlank(p.nbCorrect),numberOrBlank(p.nbTotal),numberOrBlank(p.thCorrect),numberOrBlank(p.thTotal),numberOrBlank(p.vdCorrect),numberOrBlank(p.vdTotal),clean(p.topicSummary),clean(p.attemptId),clean(p.deviceId),clean(p.submittedAt),clean(p.pageUrl),clean(p.userAgent),clean(p.grade),numberOrBlank(p.vdcCorrect),numberOrBlank(p.vdcTotal)
+      new Date(),clean(p.studentName),clean(p.className),clean(p.studentCode),clean(p.sessionType),clean(p.quizTitle),numberOrBlank(p.score10),numberOrBlank(p.correct),numberOrBlank(p.total),numberOrBlank(p.percent),numberOrBlank(p.answered),numberOrBlank(p.durationSeconds),numberOrBlank(p.nbCorrect),numberOrBlank(p.nbTotal),numberOrBlank(p.thCorrect),numberOrBlank(p.thTotal),numberOrBlank(p.vdCorrect),numberOrBlank(p.vdTotal),clean(p.topicSummary),clean(p.attemptId),clean(p.deviceId),clean(p.submittedAt),clean(p.pageUrl),clean(p.userAgent),clean(p.grade),numberOrBlank(p.vdcCorrect),numberOrBlank(p.vdcTotal),clean(p.learningStatus),clean(p.weakestLevel),clean(p.diagnosticPhase)
     ]);
     return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT);
   } finally { lock.releaseLock(); }
 }
+
+function buildSummary_(grade, className){
+  const ss=SpreadsheetApp.getActiveSpreadsheet(); const sh=ss.getSheetByName(SHEET_NAME);
+  if(!sh || sh.getLastRow()<2) return {ok:true,grade:grade,className:className,students:0,attempts:0,avgPercent:0,avgScore:0,levels:{},weakLessons:[],diagnostic:{}};
+  ensureHeaders_(sh);
+  const values=sh.getDataRange().getValues(), headers=values.shift(), idx={};headers.forEach((h,i)=>idx[String(h).trim()]=i);
+  const val=(row,h)=>idx[h]===undefined?'':row[idx[h]];
+  const rows=values.filter(r=>{
+    if(grade && String(val(r,'Khối')).trim()!==grade) return false;
+    if(className && String(val(r,'Lớp')).trim().toLowerCase()!==className) return false;
+    return true;
+  });
+  const students=new Set(), lessonMap={}, levels={NB:{right:0,total:0},TH:{right:0,total:0},VD:{right:0,total:0},VDC:{right:0,total:0}};
+  let sumPct=0,sumScore=0,nPct=0,nScore=0,pre=[],post=[];
+  rows.forEach(r=>{
+    const name=String(val(r,'Họ và tên')).trim(),cls=String(val(r,'Lớp')).trim();if(name)students.add((name+'|'+cls).toLowerCase());
+    const pct=Number(val(r,'Tỉ lệ %'));if(Number.isFinite(pct)){sumPct+=pct;nPct++;}
+    const score=Number(val(r,'Điểm /10'));if(Number.isFinite(score)){sumScore+=score;nScore++;}
+    [['NB','NB đúng','NB tổng'],['TH','TH đúng','TH tổng'],['VD','VD đúng','VD tổng'],['VDC','VDC đúng','VDC tổng']].forEach(x=>{const a=Number(val(r,x[1])),b=Number(val(r,x[2]));if(Number.isFinite(a)&&Number.isFinite(b)){levels[x[0]].right+=a;levels[x[0]].total+=b;}});
+    const type=String(val(r,'Loại bài')),title=String(val(r,'Tên bài / chế độ'));
+    if((type==='lesson'||type==='lesson-all')&&title){const x=lessonMap[title]||(lessonMap[title]={sum:0,n:0});if(Number.isFinite(pct)){x.sum+=pct;x.n++;}}
+    const phase=String(val(r,'Giai đoạn đánh giá')||'');
+    if(phase==='pre'&&Number.isFinite(pct))pre.push(pct);if(phase==='post'&&Number.isFinite(pct))post.push(pct);
+  });
+  const levelOut={};Object.keys(levels).forEach(k=>levelOut[k]={...levels[k],pct:levels[k].total?Math.round(levels[k].right/levels[k].total*100):0});
+  const weakLessons=Object.entries(lessonMap).map(([title,x])=>({title,attempts:x.n,avgPercent:x.n?Math.round(x.sum/x.n):0})).filter(x=>x.attempts>0).sort((a,b)=>a.avgPercent-b.avgPercent).slice(0,8);
+  const avg=a=>a.length?Math.round(a.reduce((s,x)=>s+x,0)/a.length):null;
+  return {ok:true,grade,className,students:students.size,attempts:rows.length,avgPercent:nPct?Math.round(sumPct/nPct):0,avgScore:nScore?Math.round(sumScore/nScore*10)/10:0,levels:levelOut,weakLessons,diagnostic:{preAvg:avg(pre),postAvg:avg(post),delta:(pre.length&&post.length)?avg(post)-avg(pre):null,preCount:pre.length,postCount:post.length}};
+}
+
 function ensureHeaders_(sh){
   if(sh.getLastRow()===0){sh.getRange(1,1,1,HEADERS.length).setValues([HEADERS]);sh.setFrozenRows(1);sh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');return;}
-  const existing=sh.getRange(1,1,1,Math.max(sh.getLastColumn(),BASE_HEADERS.length)).getValues()[0];
-  BASE_HEADERS.forEach((h,i)=>{if(!existing[i])sh.getRange(1,i+1).setValue(h);});
-  EXTRA_HEADERS.forEach((h,i)=>sh.getRange(1,BASE_HEADERS.length+i+1).setValue(h));
+  HEADERS.forEach((h,i)=>sh.getRange(1,i+1).setValue(h));
   sh.setFrozenRows(1);sh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');
 }
 function clean(v){if(v===null||v===undefined)return '';return String(v).slice(0,5000);}
