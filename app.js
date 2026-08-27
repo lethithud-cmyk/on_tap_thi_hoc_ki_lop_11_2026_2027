@@ -2,6 +2,7 @@
   const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
   const letters=['A','B','C','D'];
   const MASTERY=80, DEVELOPING=60, RECOVERY_TARGET=2;
+  const COGNITIVE_LEVELS=['Nhận biết','Thông hiểu','Vận dụng','Vận dụng cao'];
   let grade=Number(localStorage.getItem('review_active_grade'))||0;
   let course=null,state=null,profile=STORE.loadProfile(),quiz=null,timerHandle=null;
 
@@ -49,16 +50,19 @@
   function masteredLessons(){return course.lessons.filter(l=>lessonStatus(l.id).key==='master').length;}
   function overallAccuracy(){return state.attempted?Math.round(state.correct/state.attempted*100):0;}
   function levelPerformance(){
-    return course.levels.map(level=>{const x=state.levelStats?.[level]||{right:0,total:0};return {level,right:x.right||0,total:x.total||0,pct:x.total?Math.round(x.right/x.total*100):null};});
+    return COGNITIVE_LEVELS.map(level=>{const x=state.levelStats?.[level]||{right:0,total:0};return {level,right:x.right||0,total:x.total||0,pct:x.total?Math.round(x.right/x.total*100):null};});
   }
-  function weakLevel(){
-    const rows=levelPerformance().filter(x=>x.total>=2&&x.pct!==null);
-    return rows.length?[...rows].sort((a,b)=>a.pct-b.pct)[0]:null;
+  function validLevelRows(rows,minTotal=1){return rows.filter(x=>x.total>=minTotal&&x.pct!==null);}
+  function extremeLevels(rows,kind='max',minTotal=1){
+    const valid=validLevelRows(rows,minTotal);if(!valid.length)return [];
+    const target=kind==='min'?Math.min(...valid.map(x=>x.pct)):Math.max(...valid.map(x=>x.pct));
+    return valid.filter(x=>x.pct===target);
   }
-  function strongLevel(){
-    const rows=levelPerformance().filter(x=>x.total>=2&&x.pct!==null);
-    return rows.length?[...rows].sort((a,b)=>b.pct-a.pct)[0]:null;
+  function joinLevelNames(rows){
+    const names=rows.map(x=>x.level);if(names.length<=1)return names[0]||'';if(names.length===2)return `${names[0]} và ${names[1]}`;return `${names.slice(0,-1).join(', ')} và ${names[names.length-1]}`;
   }
+  function weakLevel(){return extremeLevels(levelPerformance(),'min',2)[0]||null;}
+  function strongLevels(){return extremeLevels(levelPerformance(),'max',2);}
   function wrongCountForLesson(id){return course.questions.filter(q=>q.lessonId===Number(id)&&state.wrongIds.includes(q.id)).length;}
   function recommendedLesson(){
     const tried=course.lessons.map(l=>({l,s:lessonStatus(l.id),wrong:wrongCountForLesson(l.id)})).filter(x=>x.s.key!=='master');
@@ -103,12 +107,12 @@
   }
   function renderHomeInsights(){
     if(!course||!state)return;
-    const root=$('#homeInsights'),rec=recommendedLesson(),weak=weakLevel(),strong=strongLevel(),hasPre=state.diagnosticHistory.some(x=>x.phase==='pre');
+    const root=$('#homeInsights'),rec=recommendedLesson(),weak=weakLevel(),strongs=strongLevels(),hasPre=state.diagnosticHistory.some(x=>x.phase==='pre');
     $('#homeGreeting').innerHTML=profile.name?`<b>Xin chào ${esc(profile.name)} 👋</b><span>${esc(profile.className)} · Khối ${grade}</span>`:'';
     const recStatus=rec?lessonStatus(rec.id):null;
     root.innerHTML=`
       <article class="insight-card recommendation"><span class="insight-icon">🧭</span><div><small>GỢI Ý TIẾP THEO</small><h3>${rec?`Bài ${rec.id}. ${esc(rec.title)}`:'Bắt đầu một bài học'}</h3><p>${recStatus&&recStatus.key==='weak'?'Kết quả hiện tại còn dưới 60%. Hãy luyện lại để củng cố.':recStatus&&recStatus.key==='learning'?'Em đang ở mức 60–79%. Chỉ cần thêm một bước để đạt thành thạo.':'Website chọn bài phù hợp dựa trên tiến độ và câu sai.'}</p>${rec?`<button class="text-btn" data-home-lesson="${rec.id}">Mở bài →</button>`:''}</div></article>
-      <article class="insight-card"><span class="insight-icon">📊</span><div><small>PHÂN TÍCH MỨC ĐỘ</small><h3>${weak?`${esc(weak.level)}: ${weak.pct}%`:'Chưa đủ dữ liệu'}</h3><p>${weak?`Đây là mức độ cần ưu tiên củng cố.${strong?` Mức mạnh nhất hiện tại: ${esc(strong.level)} (${strong.pct}%).`:''}`:'Làm đánh giá nhanh hoặc luyện tập để website nhận diện điểm mạnh – điểm cần cải thiện.'}</p><button class="text-btn" id="homeAdaptiveLink">Luyện theo gợi ý →</button></div></article>
+      <article class="insight-card"><span class="insight-icon">📊</span><div><small>PHÂN TÍCH MỨC ĐỘ</small><h3>${weak?`${esc(weak.level)}: ${weak.pct}%`:'Chưa đủ dữ liệu'}</h3><p>${weak?`Đây là mức độ cần ưu tiên củng cố.${strongs.length?` Mức mạnh nhất hiện tại: ${esc(joinLevelNames(strongs))} (${strongs[0].pct}%).`:''}`:'Làm đánh giá nhanh hoặc luyện tập để website nhận diện điểm mạnh – điểm cần cải thiện.'}</p><button class="text-btn" id="homeAdaptiveLink">Luyện theo gợi ý →</button></div></article>
       <article class="insight-card diagnostic"><span class="insight-icon">🎯</span><div><small>ĐÁNH GIÁ NĂNG LỰC</small><h3>${hasPre?'Đánh giá lại sau ôn tập':'Thiết lập đường cơ sở'}</h3><p>${hasPre?'15 câu · 15 phút để so sánh với lần đánh giá đầu vào và thấy mức tiến bộ.':`15 câu · 15 phút, phân bố theo ${course.levels.map(x=>esc(x)).join(' – ')}, dùng làm minh chứng trước khi ôn tập.`}</p><button class="text-btn" id="homeDiagnosticLink">${hasPre?'Đánh giá lại →':'Đánh giá đầu vào →'}</button></div></article>`;
     root.querySelectorAll('[data-home-lesson]').forEach(b=>b.onclick=()=>openLesson(+b.dataset.homeLesson));
     $('#homeAdaptiveLink').onclick=startAdaptive;$('#homeDiagnosticLink').onclick=startDiagnostic;
@@ -276,15 +280,17 @@
     const hist={date:new Date().toISOString(),title:quiz.opts.title,point:Number(point),score:correct,total};if(quiz.opts.mode==='exam'){state.examHistory.unshift(hist);state.examHistory=state.examHistory.slice(0,20);}
     save();renderLessonsAll();renderTopics();renderPractice();
 
-    const rec=resultRecommendation(byLevel,byLesson),weakest=rec.weakest,strongest=Object.entries(byLevel).map(([level,x])=>({level,...x,pct:x.total?Math.round(x.right/x.total*100):0})).sort((a,b)=>b.pct-a.pct)[0];
+    const rec=resultRecommendation(byLevel,byLesson);
+    const resultLevels=COGNITIVE_LEVELS.map(level=>{const x=byLevel[level]||{right:0,total:0};return {level,right:x.right||0,total:x.total||0,pct:x.total?Math.round(x.right/x.total*100):null};});
+    const weakestRows=extremeLevels(resultLevels,'min',1),strongestRows=extremeLevels(resultLevels,'max',1),weakest=weakestRows[0]||rec.weakest;
     const lessonResult=quiz.opts.lessonId?lessonStatus(quiz.opts.lessonId):null;
-    const analysisCards=course.levels.map(l=>{const x=byLevel[l]||{right:0,total:0},lp=x.total?Math.round(x.right/x.total*100):0;return `<div class="level-analysis ${scoreClass(lp)}"><div><b>${esc(l)}</b><span>${x.right}/${x.total}</span></div><div class="level-track"><span style="width:${lp}%"></span></div><small>${lp}% · ${lp>=MASTERY?'Làm tốt':lp>=DEVELOPING?'Đang củng cố':'Cần ưu tiên ôn'}</small></div>`}).join('');
+    const analysisCards=resultLevels.map(x=>{const l=x.level;if(!x.total){const bankHasLevel=course.questions.some(q=>q.level===l);return `<div class="level-analysis neutral"><div><b>${esc(l)}</b><span>0/0</span></div><div class="level-track"><span class="neutral" style="width:0%"></span></div><small>${bankHasLevel?'Lượt làm này chưa có câu ở mức này.':'Ngân hàng khối này hiện chưa có câu ở mức này.'}</small></div>`;}const lp=x.pct;return `<div class="level-analysis ${scoreClass(lp)}"><div><b>${esc(l)}</b><span>${x.right}/${x.total}</span></div><div class="level-track"><span class="${scoreClass(lp)}" style="width:${lp}%"></span></div><small>${lp}% · ${lp>=MASTERY?'Thành thạo':lp>=DEVELOPING?'Đang củng cố':'Cần ôn lại'}</small></div>`}).join('');
     const diagnosticNote=quiz.opts.diagnosticPhase?`<div class="evidence-note"><b>${quiz.opts.diagnosticPhase==='pre'?'📍 Đã ghi nhận đánh giá đầu vào':'📈 Đã ghi nhận đánh giá sau ôn tập'}</b><span>Kết quả này được lưu để so sánh tiến bộ trong mục Tiến độ.</span></div>`:'';
     const timeoutNote=reason==='timeout'?`<div class="evidence-note timeout-note"><b>⏰ Hết thời gian</b><span>Hệ thống đã tự động nộp bài khi đồng hồ về 00:00.</span></div>`:'';
     const review=quiz.qs.map((q,i)=>{const a=quiz.answers[q.id],ok=a===q.correctAnswer;return `<article class="review-item ${ok?'ok':'bad'}"><b>Câu ${i+1}: ${esc(q.question)}</b><p>Em chọn: ${a===undefined?'Chưa trả lời':letters[a]+'. '+esc(q.options[a])}</p><p>Đáp án: <strong>${letters[q.correctAnswer]}. ${esc(q.options[q.correctAnswer])}</strong></p><small>${esc(q.explanation)}</small></article>`}).join('');
     $('#resultContent').innerHTML=`
       <div class="result-hero v12-result"><div class="score-ring" style="--p:${pct}"><div><strong>${point}</strong><span>/10</span></div></div><div class="result-summary"><span class="eyebrow">KẾT QUẢ · TIN HỌC ${grade}</span><h2>${correct}/${total} câu đúng · ${pct}%</h2><p>${esc(profile.name)} · ${esc(profile.className)} · đã trả lời ${answered}/${total} câu.</p>${lessonResult?`<div class="result-status ${lessonResult.key}"><b>${lessonResult.icon} ${lessonResult.label}</b><span>${lessonResult.pct}% · Mục tiêu thành thạo ≥${MASTERY}%</span></div>`:''}${diagnosticNote}${timeoutNote}<div id="resultSyncStatus" class="sync-status">Chuẩn bị gửi kết quả...</div><div class="result-actions"><button class="btn primary" id="adaptiveAfter">✨ Luyện phần cần củng cố</button><button class="btn ghost" id="retryBtn">Làm lại</button><button class="btn ghost" id="homeAfter">Trang chủ</button></div></div></div>
-      <div class="analysis-grid-v12"><div class="panel"><span class="eyebrow">PHÂN TÍCH THEO MỨC ĐỘ</span><h3>Điểm mạnh – điểm cần cải thiện</h3><div class="level-analysis-list">${analysisCards}</div></div><div class="panel recommendation-panel"><span class="eyebrow">GỢI Ý CÁ NHÂN</span><h3>${weakest?`Ưu tiên: ${esc(weakest.level)}`:'Tiếp tục luyện tập'}</h3><p>${weakest?`Mức ${esc(weakest.level)} đạt ${weakest.pct}%. ${weakest.pct<DEVELOPING?'Nên luyện lại ngay để củng cố nền tảng.':'Chỉ cần luyện thêm để đạt ngưỡng thành thạo.'}`:'Hãy tiếp tục tích luỹ dữ liệu học tập.'}</p>${rec.weakLesson?`<div class="recommend-lesson"><small>BÀI NÊN ÔN TIẾP</small><b>Bài ${rec.weakLesson.id}. ${esc(rec.weakLesson.title)}</b><button class="text-btn" data-result-lesson="${rec.weakLesson.id}">Mở bài →</button></div>`:''}${strongest?`<p class="positive-note">✓ Điểm mạnh hiện tại: <b>${esc(strongest.level)} (${strongest.pct}%)</b></p>`:''}</div></div>
+      <div class="analysis-grid-v12"><div class="panel"><span class="eyebrow">PHÂN TÍCH THEO MỨC ĐỘ</span><h3>Điểm mạnh – điểm cần cải thiện</h3><div class="level-analysis-list">${analysisCards}</div></div><div class="panel recommendation-panel"><span class="eyebrow">GỢI Ý CÁ NHÂN</span><h3>${weakestRows.length?`Ưu tiên: ${esc(joinLevelNames(weakestRows))}`:weakest?`Ưu tiên: ${esc(weakest.level)}`:'Tiếp tục luyện tập'}</h3><p>${weakestRows.length?`${weakestRows.length>1?'Các mức':'Mức'} ${esc(joinLevelNames(weakestRows))} đạt ${weakestRows[0].pct}%. ${weakestRows[0].pct<DEVELOPING?'Nên luyện lại ngay để củng cố nền tảng.':'Chỉ cần luyện thêm để đạt ngưỡng thành thạo.'}`:weakest?`Mức ${esc(weakest.level)} đạt ${weakest.pct}%. ${weakest.pct<DEVELOPING?'Nên luyện lại ngay để củng cố nền tảng.':'Chỉ cần luyện thêm để đạt ngưỡng thành thạo.'}`:'Hãy tiếp tục tích luỹ dữ liệu học tập.'}</p>${rec.weakLesson?`<div class="recommend-lesson"><small>BÀI NÊN ÔN TIẾP</small><b>Bài ${rec.weakLesson.id}. ${esc(rec.weakLesson.title)}</b><button class="text-btn" data-result-lesson="${rec.weakLesson.id}">Mở bài →</button></div>`:''}${strongestRows.length?`<p class="positive-note">✓ Điểm mạnh hiện tại: <b>${esc(joinLevelNames(strongestRows))} (${strongestRows[0].pct}%)</b></p>`:''}</div></div>
       <div class="panel"><h3>Đáp án và giải thích</h3>${review}</div>`;
     $('#retryBtn').onclick=()=>startQuiz(pickQuestions(quiz.qs,quiz.qs.length),quiz.opts);$('#homeAfter').onclick=()=>show('home');$('#adaptiveAfter').onclick=startAdaptive;
     $('#resultContent').querySelectorAll('[data-result-lesson]').forEach(b=>b.onclick=()=>openLesson(+b.dataset.resultLesson));show('results');
@@ -317,7 +323,7 @@
   }
   function renderProgress(){
     const acc=overallAccuracy(),best=state.examHistory.length?Math.max(...state.examHistory.map(x=>x.point)):0,mastered=masteredLessons(),levels=levelPerformance();
-    const levelHtml=levels.map(x=>`<div class="progress-level"><div><b>${esc(x.level)}</b><span>${x.pct===null?'Chưa có dữ liệu':x.pct+'%'}</span></div><div class="level-track"><span class="${x.pct===null?'neutral':scoreClass(x.pct)}" style="width:${x.pct||0}%"></span></div><small>${x.total?`${x.right}/${x.total} câu đúng`:'Hãy làm luyện tập để ghi nhận dữ liệu.'}</small></div>`).join('');
+    const levelHtml=levels.map(x=>{const bankHasLevel=course.questions.some(q=>q.level===x.level);return `<div class="progress-level"><div><b>${esc(x.level)}</b><span>${x.pct===null?'Chưa có dữ liệu':x.pct+'%'}</span></div><div class="level-track"><span class="${x.pct===null?'neutral':scoreClass(x.pct)}" style="width:${x.pct||0}%"></span></div><small>${x.total?`${x.right}/${x.total} câu đúng`:bankHasLevel?'Hãy làm luyện tập để ghi nhận dữ liệu.':'Ngân hàng khối này hiện chưa có câu ở mức này.'}</small></div>`}).join('');
     const badges=[
       {ok:state.attempted>=20,icon:'🚀',name:'Khởi động',desc:'Làm ít nhất 20 câu'},
       {ok:mastered>=5,icon:'🏅',name:'Bền bỉ',desc:'Thành thạo ít nhất 5 bài'},
@@ -330,7 +336,7 @@
   }
 
   function renderGuide(){
-    const root=$('#guideContent');root.innerHTML=`<div class="section-head"><div><span class="eyebrow">HƯỚNG DẪN · PHIÊN BẢN v12</span><h2>Học theo năng lực và dữ liệu học tập</h2></div></div><div class="guide-grid"><div class="panel"><h3>Dành cho học sinh</h3><ol class="step-list"><li>Chọn Tin 10/Tin 11 và nhập Họ tên, Lớp.</li><li>Nếu mới bắt đầu, làm <b>Đánh giá đầu vào 15 câu trong 15 phút</b> theo các mức độ có trong khối đang học.</li><li>Học theo Bài hoặc bấm <b>Luyện theo gợi ý</b> để website ưu tiên phần còn yếu.</li><li>Mỗi bài có ba trạng thái: <b>Thành thạo ≥80%</b>, <b>Đang củng cố 60–79%</b>, <b>Cần ôn &lt;60%</b>.</li><li>Câu sai chỉ được xoá khỏi sổ sau khi trả lời đúng lại ${RECOVERY_TARGET} lần.</li><li>Sau một giai đoạn ôn tập, làm <b>Đánh giá lại 15 câu trong 15 phút</b> để xem mức tiến bộ.</li><li>Trong mọi bài trắc nghiệm, có thể đổi đáp án trước khi nộp; đúng/sai và giải thích chỉ hiển thị sau khi nộp. <b>Thi thử 30 câu có 45 phút</b>.</li></ol></div><div class="panel"><h3>Dành cho giáo viên</h3><p>Phiên bản v12 giữ nguyên cơ chế gửi kết quả về Google Sheets, đồng thời bổ sung logic <b>thành thạo – cá nhân hoá – đánh giá trước/sau</b> để phục vụ minh chứng sáng kiến.</p><p class="notice">Website chính vẫn dùng URL Apps Script đang hoạt động. Các trường dữ liệu cũ không bị thay đổi.</p><p>${esc(course.note||'')}</p><p><a href="teacher-dashboard.html" target="_blank" rel="noopener">Mở Dashboard giáo viên (tùy chọn) →</a></p></div></div>`;
+    const root=$('#guideContent');root.innerHTML=`<div class="section-head"><div><span class="eyebrow">HƯỚNG DẪN · PHIÊN BẢN v12.2</span><h2>Học theo năng lực và dữ liệu học tập</h2></div></div><div class="guide-grid"><div class="panel"><h3>Dành cho học sinh</h3><ol class="step-list"><li>Chọn Tin 10/Tin 11 và nhập Họ tên, Lớp.</li><li>Nếu mới bắt đầu, làm <b>Đánh giá đầu vào 15 câu trong 15 phút</b> theo các mức độ có trong khối đang học.</li><li>Học theo Bài hoặc bấm <b>Luyện theo gợi ý</b> để website ưu tiên phần còn yếu.</li><li>Mỗi bài có ba trạng thái: <b>Thành thạo ≥80%</b>, <b>Đang củng cố 60–79%</b>, <b>Cần ôn &lt;60%</b>.</li><li>Câu sai chỉ được xoá khỏi sổ sau khi trả lời đúng lại ${RECOVERY_TARGET} lần.</li><li>Sau một giai đoạn ôn tập, làm <b>Đánh giá lại 15 câu trong 15 phút</b> để xem mức tiến bộ.</li><li>Trong mọi bài trắc nghiệm, có thể đổi đáp án trước khi nộp; đúng/sai và giải thích chỉ hiển thị sau khi nộp. <b>Thi thử 30 câu có 45 phút</b>.</li></ol></div><div class="panel"><h3>Dành cho giáo viên</h3><p>Phiên bản v12.2 giữ nguyên cơ chế gửi kết quả về Google Sheets, đồng thời bổ sung logic <b>thành thạo – cá nhân hoá – đánh giá trước/sau</b> để phục vụ minh chứng sáng kiến.</p><p class="notice">Website chính vẫn dùng URL Apps Script đang hoạt động. Các trường dữ liệu cũ không bị thay đổi.</p><p>${esc(course.note||'')}</p><p><a href="teacher-dashboard.html" target="_blank" rel="noopener">Mở Dashboard giáo viên (tùy chọn) →</a></p></div></div>`;
   }
 
   function search(q){
