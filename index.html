@@ -88,9 +88,23 @@
 
 <div id="courseGate" class="student-gate" aria-hidden="true"><div class="student-gate-card course-gate-card"><div class="student-gate-icon">📚</div><span class="eyebrow">CHỌN CHƯƠNG TRÌNH</span><h2>Em đang ôn tập khối nào?</h2><p>Tiến độ, mức độ thành thạo và câu cần ôn của hai khối được lưu riêng.</p><div class="course-choice-grid"><button class="course-choice" data-grade="10"><b>10</b><strong>TIN HỌC 10</strong><span>30 bài theo kế hoạch ICT</span></button><button class="course-choice" data-grade="11"><b>11</b><strong>TIN HỌC 11</strong><span>31 bài ôn tập</span></button></div></div></div>
 <div id="studentGate" class="student-gate" aria-hidden="true"><div class="student-gate-card"><div class="student-gate-icon">🎓</div><span class="eyebrow">XÁC NHẬN HỌC SINH</span><h2>Nhập thông tin trước khi bắt đầu</h2><p>Thông tin được dùng để ghi nhận kết quả học tập và gửi về giáo viên.</p><label class="field-label" for="gateName">Họ và tên <b>*</b></label><input id="gateName" class="text-input" autocomplete="name" placeholder="Ví dụ: Nguyễn Văn An"><label class="field-label" for="gateClass">Lớp <b>*</b></label><input id="gateClass" class="text-input" placeholder="Ví dụ: 10A1 hoặc 11A1"><label class="field-label" for="gateCode">Mã học sinh / Số thứ tự <span>(nếu có)</span></label><input id="gateCode" class="text-input" placeholder="Ví dụ: 12"><div id="gateError" class="gate-error"></div><button id="gateSaveBtn" class="btn primary gate-save" type="button">Lưu thông tin và vào học</button><small>Có thể bấm tên học sinh trên thanh trên cùng để sửa.</small></div></div>
+
+<div id="submitGate" class="submit-gate" aria-hidden="true">
+  <div class="submit-gate-card">
+    <div class="student-gate-icon">📝</div>
+    <span class="eyebrow">KIỂM TRA TRƯỚC KHI NỘP</span>
+    <h2 id="submitGateCount">Bạn còn câu chưa trả lời.</h2>
+    <p id="submitGateList">Hãy kiểm tra lại trước khi nộp.</p>
+    <div class="submit-gate-actions">
+      <button id="submitContinue" class="btn primary" type="button">Đi đến câu chưa trả lời</button>
+      <button id="submitAnyway" class="btn ghost" type="button">Vẫn nộp bài</button>
+    </div>
+    <small>Sau khi nộp, đáp án sẽ được khóa và hệ thống mới hiển thị đúng/sai cùng giải thích.</small>
+  </div>
+</div>
 <iframe id="resultSink" name="resultSink" class="result-sink" title="Kênh gửi kết quả"></iframe>
 
-<footer class="footer"><div class="container"><div><b id="footerCourse">Website ôn tập Tin học 10 & 11</b><br><span>Học theo năng lực · Phản hồi tức thời · Dữ liệu hỗ trợ dạy học</span></div><div>Giáo viên: Lê Thị Thu Diễm<br>Trường: THCS-THPT Đốc Binh Kiều<br><small>Phiên bản v12 · Tiến độ được lưu riêng theo từng khối.</small></div></div></footer>
+<footer class="footer"><div class="container"><div><b id="footerCourse">Website ôn tập Tin học 10 & 11</b><br><span>Học theo năng lực · Phản hồi tức thời · Dữ liệu hỗ trợ dạy học</span></div><div>Giáo viên: Lê Thị Thu Diễm<br>Trường: THCS-THPT Đốc Binh Kiều<br><small>Phiên bản v12.1 · Tiến độ được lưu riêng theo từng khối.</small></div></div></footer>
 
 <script src="config.js"></script><script src="tin11-lessons.js"></script><script src="tin11-questions.js"></script><script src="capture-tin11.js"></script><script src="tin10-data.js"></script><script src="courses.js"></script><script src="storage.js"></script><script src="app.js"></script>
 </body></html>
