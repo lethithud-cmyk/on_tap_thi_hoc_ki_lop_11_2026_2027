@@ -121,7 +121,7 @@ body{background:radial-gradient(circle at 12% 4%,color-mix(in srgb,var(--brand) 
 
 /* Dòng chữ chạy đặt ngay dưới tiêu đề để luôn nhìn thấy */
 .hero-slogan{position:relative;margin:12px 0 0;height:40px;max-width:560px;overflow:hidden;border:1px solid color-mix(in srgb,var(--brand) 20%,var(--line));border-left:4px solid var(--brand);border-radius:0 13px 13px 0;background:color-mix(in srgb,var(--brand) 6%,var(--card));color:var(--brand);font-weight:900;font-size:15px;line-height:40px}
-.hero-slogan-track{display:flex;align-items:center;gap:24px;width:max-content;white-space:nowrap;padding-left:100%;will-change:transform;animation:sloganTicker 24s linear infinite!important}
+.hero-slogan-track{display:flex;align-items:center;gap:24px;width:max-content;white-space:nowrap;padding-left:100%;will-change:transform;animation:sloganTicker 24s linear infinite reverse!important}
 .hero-slogan-track span{position:static;opacity:1;white-space:nowrap;animation:none!important}
 .hero-slogan-track i{font-style:normal;font-size:11px;opacity:.55}
 .hero-slogan:hover .hero-slogan-track{animation-play-state:paused}
