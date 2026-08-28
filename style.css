@@ -101,3 +101,26 @@ body{background:radial-gradient(circle at 12% 4%,color-mix(in srgb,var(--brand) 
 .timeout-note{border-color:color-mix(in srgb,#ef4444 35%,var(--line))!important}
 @media(max-width:760px){.question-nav-grid{grid-template-columns:repeat(6,1fr)}.question-nav-head{align-items:flex-start;flex-direction:column}.quiz-actions{gap:10px;align-items:flex-end}.quiz-action-right{justify-content:flex-end}}
 @media(max-width:460px){.question-nav-grid{grid-template-columns:repeat(5,1fr)}.quiz-actions{flex-direction:column-reverse;align-items:stretch}.quiz-actions>.btn,.quiz-action-right,.quiz-action-right .btn{width:100%}.quiz-action-right{display:grid;grid-template-columns:1fr}.submit-gate-actions{display:grid}.submit-gate-actions .btn{width:100%}}
+
+/* ===== v12.3 · Hero có bìa SGK + slogan chuyển động nhẹ ===== */
+.hero-intro-grid{display:grid;grid-template-columns:minmax(0,1fr) 238px;gap:22px;align-items:center}
+.hero-copy{min-width:0}.hero-copy h1{font-size:clamp(38px,5vw,66px)}
+.book-showcase{display:flex;align-items:flex-end;justify-content:center;gap:10px;min-height:268px;padding:8px 0 4px;perspective:900px}
+.book-card{width:108px;margin:0;text-align:center;position:relative;transition:transform .28s ease,filter .28s ease;transform-origin:50% 90%}
+.book-card img{display:block;width:100%;height:auto;border-radius:11px;box-shadow:0 16px 32px rgba(15,23,42,.18),0 4px 10px rgba(15,23,42,.10);border:1px solid color-mix(in srgb,var(--line) 70%,transparent);animation:bookFloat 5.2s ease-in-out infinite;will-change:transform}
+.book-card-11 img{animation-delay:-2.6s}.book-card-10{transform:rotate(-2deg)}.book-card-11{transform:rotate(2deg)}
+.book-card figcaption{margin-top:8px;font-size:12px;font-weight:900;color:var(--muted);letter-spacing:.02em}
+.book-card:hover{transform:translateY(-5px) scale(1.045) rotate(0deg);filter:saturate(1.04)}
+.book-card:hover img{animation-play-state:paused;box-shadow:0 22px 42px rgba(15,23,42,.24),0 7px 15px rgba(15,23,42,.12)}
+@keyframes bookFloat{0%,100%{transform:translateY(0) rotateZ(0deg)}50%{transform:translateY(-8px) rotateZ(.35deg)}}
+
+.hero-slogan{position:relative;margin-top:14px;height:32px;max-width:560px;overflow:hidden;border-left:4px solid var(--brand);padding-left:12px;color:var(--brand);font-weight:900;font-size:15px;line-height:32px}
+.hero-slogan span{position:absolute;left:12px;right:0;top:0;opacity:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:translateY(10px);animation:sloganCycle 14s ease-in-out infinite}
+.hero-slogan span:nth-child(2){animation-delay:3.5s}.hero-slogan span:nth-child(3){animation-delay:7s}.hero-slogan span:nth-child(4){animation-delay:10.5s}
+@keyframes sloganCycle{0%{opacity:0;transform:translateY(10px)}5%,20%{opacity:1;transform:translateY(0)}25%,100%{opacity:0;transform:translateY(-10px)}}
+
+@media(max-width:1080px){.hero-intro-grid{grid-template-columns:minmax(0,1fr) 194px}.book-showcase{min-height:228px;gap:8px}.book-card{width:88px}.hero-copy h1{font-size:clamp(36px,5.2vw,60px)}}
+@media(max-width:900px){.hero-intro-grid{grid-template-columns:minmax(0,1fr) 230px}.book-card{width:104px}}
+@media(max-width:700px){.hero-intro-grid{grid-template-columns:1fr}.book-showcase{min-height:0;justify-content:flex-start;padding:8px 2px 2px}.book-card{width:92px}.hero-slogan{font-size:14px;max-width:100%}}
+@media(max-width:420px){.book-card{width:82px}.book-showcase{gap:8px}.hero-slogan{height:30px;line-height:30px}.hero-slogan span{white-space:normal;line-height:1.2;padding-top:6px}}
+@media(prefers-reduced-motion:reduce){.book-card img,.hero-slogan span{animation:none!important}.hero-slogan span{opacity:0}.hero-slogan span:first-child{opacity:1;transform:none}.book-card:hover{transform:none}}
