@@ -121,9 +121,11 @@ body{background:radial-gradient(circle at 12% 4%,color-mix(in srgb,var(--brand) 
 
 /* Dòng chữ chạy đặt ngay dưới tiêu đề để luôn nhìn thấy */
 .hero-slogan{position:relative;margin:12px 0 0;height:40px;max-width:560px;overflow:hidden;border:1px solid color-mix(in srgb,var(--brand) 20%,var(--line));border-left:4px solid var(--brand);border-radius:0 13px 13px 0;background:color-mix(in srgb,var(--brand) 6%,var(--card));color:var(--brand);font-weight:900;font-size:15px;line-height:40px}
-.hero-slogan span{position:absolute;left:12px;right:12px;top:0;opacity:0;white-space:nowrap;will-change:transform,opacity;animation:sloganMarquee 16s linear infinite}
-.hero-slogan span:nth-child(2){animation-delay:4s}.hero-slogan span:nth-child(3){animation-delay:8s}.hero-slogan span:nth-child(4){animation-delay:12s}
-@keyframes sloganMarquee{0%{opacity:0;transform:translateX(110%)}2%{opacity:1}21%{opacity:1;transform:translateX(-110%)}23%,100%{opacity:0;transform:translateX(-120%)}}
+.hero-slogan-track{display:flex;align-items:center;gap:24px;width:max-content;white-space:nowrap;padding-left:100%;will-change:transform;animation:sloganTicker 24s linear infinite!important}
+.hero-slogan-track span{position:static;opacity:1;white-space:nowrap;animation:none!important}
+.hero-slogan-track i{font-style:normal;font-size:11px;opacity:.55}
+.hero-slogan:hover .hero-slogan-track{animation-play-state:paused}
+@keyframes sloganTicker{from{transform:translateX(0)}to{transform:translateX(-100%)}}
 
 @media(max-width:1080px){
   .hero-intro-grid{min-height:326px}
@@ -152,11 +154,9 @@ body{background:radial-gradient(circle at 12% 4%,color-mix(in srgb,var(--brand) 
 @media(max-width:420px){
   .book-card{width:82px}.book-showcase{gap:8px}
   .hero-slogan{height:38px;line-height:38px}
-  .hero-slogan span{left:10px;right:10px}
 }
 @media(prefers-reduced-motion:reduce){
-  .book-card img,.hero-slogan span{animation:none!important}
-  .hero-slogan span{opacity:0}.hero-slogan span:first-child{opacity:1;transform:none}
+  .book-card img{animation:none!important}
   .book-card:hover{transform:none}
 }
 
