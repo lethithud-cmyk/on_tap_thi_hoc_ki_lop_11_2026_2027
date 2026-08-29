@@ -13,6 +13,16 @@
   const lessonBy=id=>course.lessons.find(l=>l.id===Number(id));
   const questionsForLesson=id=>course.questions.filter(q=>q.lessonId===Number(id));
   const questionsForTopic=id=>course.questions.filter(q=>q.topicId===Number(id));
+  const classesForGrade=g=>[...((window.SCHOOL_CLASSES||{})[Number(g)]||[])];
+  const normalizeClassName=s=>String(s||'').trim().toUpperCase();
+  const validClassForGrade=(className,g)=>classesForGrade(g).includes(normalizeClassName(className));
+  function populateClassSelect(){
+    const sel=$('#gateClass');if(!sel||!grade)return;
+    const classes=classesForGrade(grade),current=normalizeClassName(profile.className);
+    sel.innerHTML=`<option value="">-- Chọn lớp khối ${grade} --</option>`+classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+    sel.value=classes.includes(current)?current:'';
+    const hint=$('#gateClassHint');if(hint)hint.textContent=`Khối ${grade}: ${classes.join(', ')}.`;
+  }
 
   function selectGrade(g){
     grade=Number(g);course=COURSES[grade];if(!course)return;
@@ -22,14 +32,15 @@
   function showCourseGate(){const x=$('#courseGate');x.classList.add('show');x.setAttribute('aria-hidden','false');document.body.classList.add('gate-open');}
   function hideCourseGate(){const x=$('#courseGate');x.classList.remove('show');x.setAttribute('aria-hidden','true');document.body.classList.remove('gate-open');}
   function showStudentGate(force=false){
-    if(!course)return;const missing=!profile.name.trim()||!profile.className.trim(),x=$('#studentGate');
+    if(!course)return;const missing=!profile.name.trim()||!validClassForGrade(profile.className,grade),x=$('#studentGate');
     if(!force&&!missing){x.classList.remove('show');x.setAttribute('aria-hidden','true');document.body.classList.remove('gate-open');updateStudentBadge();return;}
-    $('#gateName').value=profile.name||'';$('#gateClass').value=profile.className||'';$('#gateCode').value=profile.studentCode||'';$('#gateError').textContent='';
+    $('#gateName').value=profile.name||'';populateClassSelect();$('#gateCode').value=profile.studentCode||'';$('#gateError').textContent='';
     x.classList.add('show');x.setAttribute('aria-hidden','false');document.body.classList.add('gate-open');
   }
   function saveProfile(){
-    const name=$('#gateName').value.trim(),className=$('#gateClass').value.trim(),studentCode=$('#gateCode').value.trim();
-    if(!name||!className){$('#gateError').textContent='Vui lòng nhập đầy đủ Họ và tên và Lớp.';return;}
+    const name=$('#gateName').value.trim(),className=normalizeClassName($('#gateClass').value),studentCode=$('#gateCode').value.trim();
+    if(!name||!className){$('#gateError').textContent='Vui lòng nhập Họ và tên và chọn Lớp.';return;}
+    if(!validClassForGrade(className,grade)){$('#gateError').textContent=`Vui lòng chọn đúng lớp thuộc khối ${grade}.`;return;}
     profile={name,className,studentCode};STORE.saveProfile(profile);showStudentGate(false);renderShell();
   }
   function updateStudentBadge(){const b=$('#studentBadge');b.textContent=profile.name&&profile.className?`👤 ${profile.name} · ${profile.className}`:'👤 Chưa nhập thông tin';}
@@ -336,7 +347,7 @@
   }
 
   function renderGuide(){
-    const root=$('#guideContent');root.innerHTML=`<div class="section-head"><div><span class="eyebrow">HƯỚNG DẪN · PHIÊN BẢN v12.2</span><h2>Học theo năng lực và dữ liệu học tập</h2></div></div><div class="guide-grid"><div class="panel"><h3>Dành cho học sinh</h3><ol class="step-list"><li>Chọn Tin 10/Tin 11 và nhập Họ tên, Lớp.</li><li>Nếu mới bắt đầu, làm <b>Đánh giá đầu vào 15 câu trong 15 phút</b> theo các mức độ có trong khối đang học.</li><li>Học theo Bài hoặc bấm <b>Luyện theo gợi ý</b> để website ưu tiên phần còn yếu.</li><li>Mỗi bài có ba trạng thái: <b>Thành thạo ≥80%</b>, <b>Đang củng cố 60–79%</b>, <b>Cần ôn &lt;60%</b>.</li><li>Câu sai chỉ được xoá khỏi sổ sau khi trả lời đúng lại ${RECOVERY_TARGET} lần.</li><li>Sau một giai đoạn ôn tập, làm <b>Đánh giá lại 15 câu trong 15 phút</b> để xem mức tiến bộ.</li><li>Trong mọi bài trắc nghiệm, có thể đổi đáp án trước khi nộp; đúng/sai và giải thích chỉ hiển thị sau khi nộp. <b>Thi thử 30 câu có 45 phút</b>.</li></ol></div><div class="panel"><h3>Dành cho giáo viên</h3><p>Phiên bản v12.2 giữ nguyên cơ chế gửi kết quả về Google Sheets, đồng thời bổ sung logic <b>thành thạo – cá nhân hoá – đánh giá trước/sau</b> để phục vụ minh chứng sáng kiến.</p><p class="notice">Website chính vẫn dùng URL Apps Script đang hoạt động. Các trường dữ liệu cũ không bị thay đổi.</p><p>${esc(course.note||'')}</p><p><a href="teacher-dashboard.html" target="_blank" rel="noopener">Mở Dashboard giáo viên (tùy chọn) →</a></p></div></div>`;
+    const root=$('#guideContent');root.innerHTML=`<div class="section-head"><div><span class="eyebrow">HƯỚNG DẪN · PHIÊN BẢN v12.4</span><h2>Học theo năng lực và dữ liệu học tập</h2></div></div><div class="guide-grid"><div class="panel"><h3>Dành cho học sinh</h3><ol class="step-list"><li>Chọn Tin 10/Tin 11, nhập Họ tên và <b>chọn lớp từ danh sách chuẩn</b> của khối đang học.</li><li>Nếu mới bắt đầu, làm <b>Đánh giá đầu vào 15 câu trong 15 phút</b> theo các mức độ có trong khối đang học.</li><li>Học theo Bài hoặc bấm <b>Luyện theo gợi ý</b> để website ưu tiên phần còn yếu.</li><li>Mỗi bài có ba trạng thái: <b>Thành thạo ≥80%</b>, <b>Đang củng cố 60–79%</b>, <b>Cần ôn &lt;60%</b>.</li><li>Câu sai chỉ được xoá khỏi sổ sau khi trả lời đúng lại ${RECOVERY_TARGET} lần.</li><li>Sau một giai đoạn ôn tập, làm <b>Đánh giá lại 15 câu trong 15 phút</b> để xem mức tiến bộ.</li><li>Trong mọi bài trắc nghiệm, có thể đổi đáp án trước khi nộp; đúng/sai và giải thích chỉ hiển thị sau khi nộp. <b>Thi thử 30 câu có 45 phút</b>.</li></ol></div><div class="panel"><h3>Dành cho giáo viên</h3><p>Phiên bản v12.4 chuẩn hóa lớp học và giữ nguyên cơ chế gửi kết quả về Google Sheets, đồng thời bổ sung logic <b>thành thạo – cá nhân hoá – đánh giá trước/sau</b> để phục vụ minh chứng sáng kiến.</p><p class="notice">Website chính vẫn dùng URL Apps Script đang hoạt động. Các trường dữ liệu cũ không bị thay đổi.</p><p>${esc(course.note||'')}</p><p><a href="teacher-dashboard.html" target="_blank" rel="noopener">Mở Dashboard giáo viên (tùy chọn) →</a></p></div></div>`;
   }
 
   function search(q){

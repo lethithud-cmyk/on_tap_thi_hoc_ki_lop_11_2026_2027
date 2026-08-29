@@ -160,3 +160,5 @@ body{background:radial-gradient(circle at 12% 4%,color-mix(in srgb,var(--brand) 
   .book-card:hover{transform:none}
 }
 
+
+.field-help{display:block!important;text-align:left!important;margin:6px 0 0!important;font-size:12px!important;color:var(--muted)!important;line-height:1.45}.student-gate-card select.text-input{appearance:auto;cursor:pointer}
