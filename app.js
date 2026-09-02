@@ -16,12 +16,18 @@
   const classesForGrade=g=>[...((window.SCHOOL_CLASSES||{})[Number(g)]||[])];
   const normalizeClassName=s=>String(s||'').trim().toUpperCase();
   const validClassForGrade=(className,g)=>classesForGrade(g).includes(normalizeClassName(className));
-  function populateClassSelect(){
-    const sel=$('#gateClass');if(!sel||!grade)return;
-    const classes=classesForGrade(grade),current=normalizeClassName(profile.className);
-    sel.innerHTML=`<option value="">-- Chọn lớp khối ${grade} --</option>`+classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+  function populateGradeSelect(){
+    const sel=$('#gateGrade');if(!sel)return;
+    const g=COURSES[grade]?grade:10;
+    sel.value=String(g);
+  }
+  function populateClassSelect(g=grade){
+    g=Number(g);
+    const sel=$('#gateClass');if(!sel||!COURSES[g])return;
+    const classes=classesForGrade(g),current=normalizeClassName(profile.className);
+    sel.innerHTML=`<option value="">-- Chọn lớp khối ${g} --</option>`+classes.map(c=>`<option value="${c}">${c}</option>`).join('');
     sel.value=classes.includes(current)?current:'';
-    const hint=$('#gateClassHint');if(hint)hint.textContent=`Khối ${grade}: ${classes.join(', ')}.`;
+    const hint=$('#gateClassHint');if(hint)hint.textContent=`Khối ${g}: ${classes.join(', ')}.`;
   }
 
   function selectGrade(g){
@@ -34,14 +40,16 @@
   function showStudentGate(force=false){
     if(!course)return;const missing=!profile.name.trim()||!validClassForGrade(profile.className,grade),x=$('#studentGate');
     if(!force&&!missing){x.classList.remove('show');x.setAttribute('aria-hidden','true');document.body.classList.remove('gate-open');updateStudentBadge();return;}
-    $('#gateName').value=profile.name||'';populateClassSelect();$('#gateCode').value=profile.studentCode||'';$('#gateError').textContent='';
+    $('#gateName').value=profile.name||'';populateGradeSelect();populateClassSelect(Number($('#gateGrade').value)||grade);$('#gateCode').value=profile.studentCode||'';$('#gateError').textContent='';
     x.classList.add('show');x.setAttribute('aria-hidden','false');document.body.classList.add('gate-open');
   }
   function saveProfile(){
-    const name=$('#gateName').value.trim(),className=normalizeClassName($('#gateClass').value),studentCode=$('#gateCode').value.trim();
-    if(!name||!className){$('#gateError').textContent='Vui lòng nhập Họ và tên và chọn Lớp.';return;}
-    if(!validClassForGrade(className,grade)){$('#gateError').textContent=`Vui lòng chọn đúng lớp thuộc khối ${grade}.`;return;}
-    profile={name,className,studentCode};STORE.saveProfile(profile);showStudentGate(false);renderShell();
+    const selectedGrade=Number($('#gateGrade').value),name=$('#gateName').value.trim(),className=normalizeClassName($('#gateClass').value),studentCode=$('#gateCode').value.trim();
+    if(!COURSES[selectedGrade]){$('#gateError').textContent='Vui lòng chọn Khối 10 hoặc Khối 11.';return;}
+    if(!name||!className){$('#gateError').textContent='Vui lòng nhập Họ và tên, chọn Khối và chọn Lớp.';return;}
+    if(!validClassForGrade(className,selectedGrade)){$('#gateError').textContent=`Vui lòng chọn đúng lớp thuộc khối ${selectedGrade}.`;return;}
+    grade=selectedGrade;course=COURSES[grade];localStorage.setItem('review_active_grade',grade);state=STORE.load(grade);
+    profile={name,className,studentCode};STORE.saveProfile(profile);applyTheme();hideCourseGate();showStudentGate(false);renderShell();show('home');
   }
   function updateStudentBadge(){const b=$('#studentBadge');b.textContent=profile.name&&profile.className?`👤 ${profile.name} · ${profile.className}`:'👤 Chưa nhập thông tin';}
   function save(){STORE.save(grade,state);renderStats();renderHomeInsights();}
@@ -347,7 +355,7 @@
   }
 
   function renderGuide(){
-    const root=$('#guideContent');root.innerHTML=`<div class="section-head"><div><span class="eyebrow">HƯỚNG DẪN · PHIÊN BẢN v12.4</span><h2>Học theo năng lực và dữ liệu học tập</h2></div></div><div class="guide-grid"><div class="panel"><h3>Dành cho học sinh</h3><ol class="step-list"><li>Chọn Tin 10/Tin 11, nhập Họ tên và <b>chọn lớp từ danh sách chuẩn</b> của khối đang học.</li><li>Nếu mới bắt đầu, làm <b>Đánh giá đầu vào 15 câu trong 15 phút</b> theo các mức độ có trong khối đang học.</li><li>Học theo Bài hoặc bấm <b>Luyện theo gợi ý</b> để website ưu tiên phần còn yếu.</li><li>Mỗi bài có ba trạng thái: <b>Thành thạo ≥80%</b>, <b>Đang củng cố 60–79%</b>, <b>Cần ôn &lt;60%</b>.</li><li>Câu sai chỉ được xoá khỏi sổ sau khi trả lời đúng lại ${RECOVERY_TARGET} lần.</li><li>Sau một giai đoạn ôn tập, làm <b>Đánh giá lại 15 câu trong 15 phút</b> để xem mức tiến bộ.</li><li>Trong mọi bài trắc nghiệm, có thể đổi đáp án trước khi nộp; đúng/sai và giải thích chỉ hiển thị sau khi nộp. <b>Thi thử 30 câu có 45 phút</b>.</li></ol></div><div class="panel"><h3>Dành cho giáo viên</h3><p>Phiên bản v12.4 chuẩn hóa lớp học và giữ nguyên cơ chế gửi kết quả về Google Sheets, đồng thời bổ sung logic <b>thành thạo – cá nhân hoá – đánh giá trước/sau</b> để phục vụ minh chứng sáng kiến.</p><p class="notice">Website chính vẫn dùng URL Apps Script đang hoạt động. Các trường dữ liệu cũ không bị thay đổi.</p><p>${esc(course.note||'')}</p><p><a href="teacher-dashboard.html" target="_blank" rel="noopener">Mở Dashboard giáo viên (tùy chọn) →</a></p></div></div>`;
+    const root=$('#guideContent');root.innerHTML=`<div class="section-head"><div><span class="eyebrow">HƯỚNG DẪN · PHIÊN BẢN v12.4.1</span><h2>Học theo năng lực và dữ liệu học tập</h2></div></div><div class="guide-grid"><div class="panel"><h3>Dành cho học sinh</h3><ol class="step-list"><li>Nhập Họ tên, <b>chọn Khối 10 hoặc Khối 11</b>, sau đó chọn lớp từ danh sách chuẩn tương ứng.</li><li>Nếu mới bắt đầu, làm <b>Đánh giá đầu vào 15 câu trong 15 phút</b> theo các mức độ có trong khối đang học.</li><li>Học theo Bài hoặc bấm <b>Luyện theo gợi ý</b> để website ưu tiên phần còn yếu.</li><li>Mỗi bài có ba trạng thái: <b>Thành thạo ≥80%</b>, <b>Đang củng cố 60–79%</b>, <b>Cần ôn &lt;60%</b>.</li><li>Câu sai chỉ được xoá khỏi sổ sau khi trả lời đúng lại ${RECOVERY_TARGET} lần.</li><li>Sau một giai đoạn ôn tập, làm <b>Đánh giá lại 15 câu trong 15 phút</b> để xem mức tiến bộ.</li><li>Trong mọi bài trắc nghiệm, có thể đổi đáp án trước khi nộp; đúng/sai và giải thích chỉ hiển thị sau khi nộp. <b>Thi thử 30 câu có 45 phút</b>.</li></ol></div><div class="panel"><h3>Dành cho giáo viên</h3><p>Phiên bản v12.4.1 bổ sung thao tác <b>chọn Khối trước, chọn Lớp sau</b>; danh sách lớp tự thay đổi theo khối. Phiên bản này giữ nguyên cơ chế gửi kết quả về Google Sheets và các logic <b>thành thạo – cá nhân hoá – đánh giá trước/sau</b> để phục vụ minh chứng sáng kiến.</p><p class="notice">Website chính vẫn dùng URL Apps Script đang hoạt động. Các trường dữ liệu cũ không bị thay đổi.</p><p>${esc(course.note||'')}</p><p><a href="teacher-dashboard.html" target="_blank" rel="noopener">Mở Dashboard giáo viên (tùy chọn) →</a></p></div></div>`;
   }
 
   function search(q){
@@ -363,7 +371,7 @@
     $('#menuBtn').onclick=()=>$('#navLinks').classList.toggle('open');
     $('#moreBtn').onclick=e=>{e.stopPropagation();$('#moreMenu').classList.toggle('open');$('#moreBtn').setAttribute('aria-expanded',$('#moreMenu').classList.contains('open')?'true':'false');};
     document.addEventListener('click',e=>{if(!e.target.closest('.more-nav'))$('#moreMenu')?.classList.remove('open');});
-    $('#themeBtn').onclick=()=>{if(!state)return;state.theme=state.theme==='dark'?'light':'dark';save();applyTheme()};$('#studentBadge').onclick=()=>showStudentGate(true);$('#gateSaveBtn').onclick=saveProfile;
+    $('#themeBtn').onclick=()=>{if(!state)return;state.theme=state.theme==='dark'?'light':'dark';save();applyTheme()};$('#studentBadge').onclick=()=>showStudentGate(true);$('#gateGrade').onchange=e=>{populateClassSelect(Number(e.target.value));$('#gateError').textContent='';};$('#gateSaveBtn').onclick=saveProfile;
     $('#courseBadge').onclick=showCourseGate;$('#switchCourseBtn').onclick=showCourseGate;$$('.course-choice').forEach(b=>b.onclick=()=>selectGrade(b.dataset.grade));
     $('#startBtn').onclick=()=>show('lessons');$('#adaptiveBtn').onclick=startAdaptive;$('#examBtn').onclick=startExam;$('#diagnosticBtn').onclick=startDiagnostic;$('#wrongBtn').onclick=renderWrong;$('#searchInput').addEventListener('input',e=>search(e.target.value));
   }
